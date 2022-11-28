@@ -72,7 +72,7 @@ alta(){
 
     if [[ $dniuser =~ $dni_valido ]]; then #Comprueba que los datos introducidos coincidan con los caracteres de $dni_valido
 
-        if [ "$(existe)" -gt 0 ]
+        if [ "$(existe)" -gt 0 ] #Si la función existe() (número de líneas que coinciden con el DNI o usuario en el archivo usuarios.csv) es mayor que 0, significa que existe dicho usuario.
         then
             echo "El usuario ya existe en nuestro sistema. Pruebe con otro usuario"
 
@@ -102,7 +102,7 @@ generauser(){
 #///////////////////FIN FUNCIÓN GENERAUSER////////////////////////////////////////
 #///////////////////FUNCIÓN EXISTE////////////////////////////////////////////
 existe(){
-    comprob=$(awk -F ":" '{print $4,$5}' usuarios.csv | grep -w $dniuser | wc -l)
+    comprob=$(awk -F ":" '{print $4,$5}' usuarios.csv | grep -w $dniuser | wc -l) #Comprueba que el usuario o DNI coincida con algunos de los campos 4 o 5 del archivo usuarios.csv y cuenta el número de líneas
     echo $comprob
 }
 #///////////////////FIN FUNCIÓN EXISTE////////////////////////////////////////
@@ -110,7 +110,7 @@ existe(){
 baja(){
     echo "Introduce el DNI o nombre del usuario que desea dar de baja"
     read dniuser
-    if [ "$(existe)" -gt 0 ]
+    if [ "$(existe)" -gt 0 ] #Si la función existe() (número de líneas que coinciden con el DNI o usuario en el archivo usuarios.csv) es mayor que 0, significa que existe dicho usuario.
     then
         
         userBorrado=$(grep $dniuser usuarios.csv) #Antes de borrar el usuario, lo almacena en esta variable para mostrar los datos en el fichero log.log
@@ -136,14 +136,13 @@ mostrar_usuarios(){
     if [[ $respuesta == 'S' ]] || [[ $respuesta == "s" ]]
     then 
         echo -e "Mostrando usuarios.csv ordenados según nombre de usuario:\n"
-        cat usuarios.csv | awk -F ":" '{ print $5":"$1":"$2":"$3":"$4 }' | sort
+        cat usuarios.csv | awk -F ":" '{ print $5":"$1":"$2":"$3":"$4 }' | sort #Muestra el campo 5 (usuario) el primero del archivo usuarios.csv y lo muestra ordenado.
     elif [[ $respuesta == "N" ]] || [[ $respuesta == "n" ]]
     then
     cat usuarios.csv
     else 
         echo "ERROR. Debe introducir 's' o 'n' para mostrar las opciones"
     fi
-
 }
 #///////////////////FIN FUNCIÓN MOSTRAR_USUARIOS////////////////////////////////////
 #///////////////////FUNCIÓN MOSTRAR_LOG////////////////////////////////////////////
@@ -162,14 +161,14 @@ login(){
 
         existeUser=$(awk -F ":" '{print $5}' usuarios.csv | grep -w "$user" | wc -l)
 
-        if [ $existeUser -eq 1 ]
+        if [ $existeUser -eq 1 ] #En caso de introducir un usuario que exista, te inicia sesión directamente. Si no, empieza la cuenta de 3 intentos.
         then
-        user=$(awk -F ":" '{print $5}' usuarios.csv | grep -w "$user")
+        user=$(awk -F ":" '{print $5}' usuarios.csv | grep -w "$user") #Extrae el usuario con el que se ha iniciado sesión para darle la bienvenida.
         echo -e "Has iniciado sesión con $user\n"
         sleep 1
         menu
         else
-            i=3
+            i=3 #Inicializamos la variable 'i' a 3, para ser una cuenta regresiva en el bucle.
             while [ $i -ge 1 ]; do
                 echo "Usuario no encontrado, inténtelo de nuevo. Intentos ($i)"
                 read -s user2
@@ -246,7 +245,7 @@ menu(){
     6) opcion6;;
 
     esac
-    exit 0
+    exit 0 #Sale del programa
 }
 #///////////////////FIN DE FUNCION MENU////////////////////////////////////////////
 #///////////////////PROGRAMA PRINCIPAL//////////////////////////////////////////////
