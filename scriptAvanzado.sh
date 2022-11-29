@@ -2,13 +2,14 @@
 
 #Exit 0: Sale del programa sin problemas (opción 6 del menú)
 #Exit 1: El archivo usuarios.csv está vacío (fallo al iniciar sesión)
+#Exit 2: Se ha introducido correctamente el usuario.
 es_numero='^[0-9]+$'
 dni_valido='^[0-9]{8}+[A-Za-z]{1}'
 datos='^[A-Za-zÁÉÍÓÚáéíóú]+$'
 #///////////////////FUNCION COPIA//////////////////////////////////////////////////
 copia(){
 
-numero_copias=$(ls copia_usuarios*.zip | wc -l) #Se define la variable numero_copias como el valor numérico de las copias que existan
+numero_copias=$(ls | grep copia_usuarios | wc -l) #Se define la variable numero_copias como el valor numérico de las copias que existan
 if [ $numero_copias -eq 2 ] #Primero cumprueba que este valor sea igual que dos. En caso de serlo borra la más antigua y crea la actual
 then
     archivo1=$(ls copia_usuarios* | head -n1) #Almacena el primer archivo que salga en el ls
@@ -58,7 +59,7 @@ alta(){
         alta
     fi
 
-    echo "Introduuce el segundo apellido del usuario a dar de alta"
+    echo "Introduce el segundo apellido del usuario a dar de alta"
     read apellido2
 
     if ! [[ $apellido2 =~ $datos ]] ; then #Comprueba que los datos introducidos coincidan con los caracteres de $datos
@@ -75,11 +76,13 @@ alta(){
         if [ "$(existe)" -gt 0 ] #Si la función existe() (número de líneas que coinciden con el DNI o usuario en el archivo usuarios.csv) es mayor que 0, significa que existe dicho usuario.
         then
             echo "El usuario ya existe en nuestro sistema. Pruebe con otro usuario"
+            alta
 
         else #Si el usuario no existe, lo añade a la base de usuarios.csv empleando el formato apropiado.
             echo $nombre:$apellido1:$apellido2:$dniuser:`generauser` >> usuarios.csv
-            echo "Introduciendo los datos del usuario en el archivo usuarios.csv"
+            echo "Introducidos correctamente los datos del usuario en el archivo usuarios.csv"
             echo "INSERTADO $nombre:$apellido1:$apellido2:$dniuser:`generauser` el `date +"%d%m%Y"` a las `date +"%H:%M"h`" >> log.log #inserta datos en el archivo log.log
+            exit 2
         fi
     else
         echo "ERROR. El DNI debe de tener un formato válido: 8 números y 1 letra. Repitiendo el proceso"
@@ -116,7 +119,7 @@ baja(){
         userBorrado=$(grep $dniuser usuarios.csv) #Antes de borrar el usuario, lo almacena en esta variable para mostrar los datos en el fichero log.log
         echo "BORRADO $userBorrado el `date +"%d%m%Y"` a las `date +"%H:%M"h`" >> log.log #inserta datos en el archivo log.log
 
-        grep -v $dniuser usuarios.csv > aux.tmp #Almacena todas las línas menos las del usuario que se va a borrar a un archivo 'aux.tmp'
+        grep -v $dniuser usuarios.csv > aux.tmp #Almacena todas las líneas del fichero usuarios.csv menos las del usuario que se va a borrar a un archivo 'aux.tmp'
         rm usuarios.csv ; mv aux.tmp usuarios.csv #Borra el archivo usuarios.csv y renombra el 'aux.tmp' a usuarios.csv, ya con el usuario borrado.
         echo "Eliminando al usuario $dniuser del archivo usuarios.csv"
 
@@ -133,7 +136,7 @@ mostrar_usuarios(){
     echo "¿Desea ver la lista de usuarios ordenada (s/n)" 
     echo "S=ordena según nombre de usuario, N=muestra la lista con el orden normal"
     read respuesta
-    if [[ $respuesta == 'S' ]] || [[ $respuesta == "s" ]]
+    if [[ $respuesta == 'S' ]] || [[ $respuesta == "s" ]] #admite que la s se le introduzca tanto en mayus como en minus.
     then 
         echo -e "Mostrando usuarios.csv ordenados según nombre de usuario:\n"
         cat usuarios.csv | awk -F ":" '{ print $5":"$1":"$2":"$3":"$4 }' | sort #Muestra el campo 5 (usuario) el primero del archivo usuarios.csv y lo muestra ordenado.
@@ -159,7 +162,7 @@ login(){
         echo "Bienvenido al programa. Introduce su nombre de usuario para iniciar sesión"
         read -s user
 
-        existeUser=$(awk -F ":" '{print $5}' usuarios.csv | grep -w "$user" | wc -l)
+        existeUser=$(awk -F ":" '{print $5}' usuarios.csv | grep -w "$user" | wc -l) #Cuenta la cantidad de líneas de realizar el grep al archivo usuarios.csv que coinciden con el campo 5. (0 no existe, 1 sí existe)
 
         if [ $existeUser -eq 1 ] #En caso de introducir un usuario que exista, te inicia sesión directamente. Si no, empieza la cuenta de 3 intentos.
         then
@@ -172,19 +175,20 @@ login(){
             while [ $i -ge 1 ]; do
                 echo "Usuario no encontrado, inténtelo de nuevo. Intentos ($i)"
                 read -s user2
-                existeUser2=$(awk -F ":" '{print $5}' usuarios.csv | grep -w "$user2" | wc -l)
-                i=`expr $i - 1` 
-                if [ $existeUser2 -eq 1 ]
+                existeUser2=$(awk -F ":" '{print $5}' usuarios.csv | grep -w "$user2" | wc -l) #Igual que el existeuser de arriba, sólo que estamos en un bucle distinto y necesita establecerse de nuevo.
+                i=`expr $i - 1`  #se le resta al valor i inicializado en 3 una unidad
+                if [ $existeUser2 -eq 1 ]  #si el usuario existe, te lleva al menú
                 then
                     user=$(awk -F ":" '{print $5}' usuarios.csv | grep -w "$user2")
-                    echo "Has iniciado sesión con $user2"
+                    echo -e "Has iniciado sesión con $user2\n"
+                    sleep 1
                     menu
                 fi
             done
             echo "Se agotaron los intentos. Si no conoce su usuario o no dispone de uno, póngase en contacto con el Administrador"
         fi
 
-    else 
+    else #Aquí se ejecuta en caso de estar vacío.
         echo "El archivo usuarios.csv está vacío. Por favor, haga login como administrador para la introducción de usuarios."
         exit 1
     fi
@@ -199,7 +203,7 @@ menu(){
     }
     opcion2(){
 
-        if [[ $adminLogin -eq 1 ]]
+        if [[ $adminLogin -eq 1 ]] #Si el valor adminLogin, establecido únicamente como 1 si se le introduce el parámetro -root, es 1, te hace la función de alta. Si no, te identifica como usuario normal.
         then
             alta
         else
@@ -209,7 +213,7 @@ menu(){
         fi
     }
     opcion3(){
-        if [[ $adminLogin -eq 1 ]]
+        if [[ $adminLogin -eq 1 ]] #Igual que con la función alta.
         then
             baja
         else
@@ -225,7 +229,7 @@ menu(){
         mostrar_log
     }
     opcion6(){
-        echo "Saliendo..."
+        echo "Saliendo..." #Puesto el exit 0 fuera del bucle para no 'romperlo'.
     }
 
     echo "1.- EJECUTAR COPIA DE SEGURIDAD"
@@ -258,7 +262,7 @@ then
     sleep 1
 fi
 
-if [ $1 == "-root" ] #Una vez sabe que se le ha introducido un parámetro, comprueba que este sea -root.
+if [ "$1" == "-root" ] #Una vez sabe que se le ha introducido un parámetro, comprueba que este sea -root.
 then
     adminLogin=1 # Igualamos la variable adminLogin a cualquier valor, en mi caso 1, para ponerlo en el menú como argumento del if.
     echo -e "Has iniciado sesión como Administrador!\n" 
